@@ -1,19 +1,21 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+  <meta name="titoja-base-path" content="">
+  <base href="/">
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#ff691d"><title>TitoJá · Aplicativo</title>
-  <link rel="stylesheet" href="/account.css"><link rel="stylesheet" href="/operations.css"><link rel="stylesheet" href="/map.css">
-  <script type="module" src="/operations.js"></script>
+  <link rel="stylesheet" href="account.css"><link rel="stylesheet" href="operations.css"><link rel="stylesheet" href="map.css">
+  <script type="module" src="operations.js"></script>
 </head>
 <body>
   <div class="ops-banner">Pedidos e etapas compartilhados entre contas · <strong>Pagamento simulado, sem cobrança</strong></div>
   <div class="shell ops-shell">
-    <header><a class="brand" href="/app/" aria-label="TitoJá início"><svg class="brand-pin" viewBox="0 0 48 58" aria-hidden="true"><path d="M24 1C8 1-1 16 6 30l18 27 18-27C49 16 40 1 24 1Z"/><circle fill="white" cx="24" cy="22" r="9"/></svg>TitoJá</a><span class="pill" id="ops-identity">Sua conta</span><a href="/">Minha conta</a><button class="secondary" id="ops-signout" type="button" hidden>Sair</button></header>
+    <header><a class="brand" href="app/" aria-label="TitoJá início"><svg class="brand-pin" viewBox="0 0 48 58" aria-hidden="true"><path d="M24 1C8 1-1 16 6 30l18 27 18-27C49 16 40 1 24 1Z"/><circle fill="white" cx="24" cy="22" r="9"/></svg>TitoJá</a><span class="pill" id="ops-identity">Sua conta</span><a href="./">Minha conta</a><button class="secondary" id="ops-signout" type="button" hidden>Sair</button></header>
     <nav class="ops-nav" id="ops-nav" aria-label="Aplicativo" hidden><button data-nav="home" type="button">Início</button><button data-nav="orders" type="button">Meus pedidos</button><button data-nav="manage" id="ops-store-nav" type="button" hidden>Minha loja</button><button id="ops-refresh" type="button">Atualizar</button><span id="ops-updated" aria-live="polite"></span></nav>
     <p id="ops-message" class="ops-message" role="status" aria-live="polite"></p>
     <main id="operations"><section class="card"><h1>Carregando o aplicativo.</h1></section></main>
-    <footer>Preços de produtos definidos pelo estabelecimento; frete e corridas com valor a combinar. Mapa opcional com pontos informados; sem rota ou previsão de chegada.<br><a href="/demo/">Demonstração separada com dados fictícios</a></footer>
+    <footer>Preços de produtos definidos pelo estabelecimento; frete e corridas com valor a combinar. Mapa opcional com pontos informados; sem rota ou previsão de chegada.<br><a href="demo/">Demonstração separada com dados fictícios</a></footer>
   </div>
 </body>
 </html>

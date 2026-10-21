@@ -17,7 +17,7 @@ cpSync(resolve(root, 'frontend/static'), resolve(root, 'frontend/dist'), { recur
 for (const project of ['frontend/tsconfig.json', 'client/tsconfig.json', 'server/tsconfig.json']) {
   execFileSync(process.execPath, [compiler, '-p', project], { cwd: root, stdio: 'inherit' });
 }
-for (const script of ['public/account.js', 'public/operations.js', 'frontend/dist/app.js', 'dist/server/index.js']) {
+for (const script of ['public/account.js', 'public/operations.js', 'public/paths.js', 'frontend/dist/app.js', 'dist/server/index.js']) {
   execFileSync(process.execPath, ['--check', script], { cwd: root, stdio: 'inherit' });
 }
 for (const asset of ['reference.png', 'beer-3d.png', 'delivery-scooter.png']) {

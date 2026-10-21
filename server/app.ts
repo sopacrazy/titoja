@@ -27,6 +27,7 @@ const mimeTypes: Record<string, string> = {
 export interface AppConfig {
   databasePath: string;
   origin: string;
+  basePath?: string;
   secureCookies?: boolean;
   publicDirectory?: string;
   demoDirectory?: string;
@@ -140,6 +141,10 @@ export function createApp(config: AppConfig) {
   try { originUrl = new URL(config.origin); } catch { throw new Error('APP_ORIGIN must be a valid HTTP(S) origin'); }
   if (originUrl.origin !== config.origin || !['http:', 'https:'].includes(originUrl.protocol)) throw new Error('APP_ORIGIN must be an HTTP(S) origin without a path');
   if (originUrl.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(originUrl.hostname)) throw new Error('Plain HTTP is allowed only on loopback');
+  const basePath = config.basePath ?? '';
+  if (typeof basePath !== 'string' || basePath.length > 160 || !/^(?:\/[A-Za-z0-9_-]+)*$/u.test(basePath)) {
+    throw new Error('BASE_PATH must be empty or an absolute path of safe segments without a trailing slash');
+  }
   const secure = config.secureCookies ?? originUrl.protocol === 'https:';
   if (originUrl.protocol === 'https:' && !secure) throw new Error('HTTPS requires Secure session cookies');
   const ttl = config.sessionTtlMs ?? sessionLifetime;
@@ -220,6 +225,17 @@ export function createApp(config: AppConfig) {
     }
     if (!limiter.consume(key, now())) throw new HttpError(429, 'Muitas tentativas. Aguarde antes de tentar novamente', Math.ceil(rateConfig.windowMs / 1000));
   }
+  function mountedHtml(content: Buffer): Buffer {
+    const meta = `<meta name="titoja-base-path" content="${basePath}">`;
+    let html = content.toString('utf8');
+    const existingMeta = /<meta\s+name=(["'])titoja-base-path\1\s+content=(["'])[^"']*\2\s*\/?>/iu;
+    if (existingMeta.test(html)) html = html.replace(existingMeta, meta);
+    else html = html.replace(/<head(?:\s[^>]*)?>/iu, tag => tag + meta);
+    // Only the two authored base targets are mounted. Asset/link paths remain
+    // relative to these bases, and JavaScript receives the same prefix via meta.
+    html = html.replace(/<base\s+href=(["'])(\/(?:demo\/)?)\1\s*\/?>/giu, (_tag, _quote: string, href: string) => `<base href="${basePath}${href}">`);
+    return Buffer.from(html, 'utf8');
+  }
 
   async function staticFile(request: IncomingMessage, response: ServerResponse, pathname: string): Promise<boolean> {
     let directory: string;
@@ -227,7 +243,7 @@ export function createApp(config: AppConfig) {
     const demo = pathname === '/demo' || pathname.startsWith('/demo/');
     if (pathname === '/') { directory = publicDirectory; requested = 'index.html'; }
     else if (pathname === '/app' || pathname === '/app/') { directory = publicDirectory; requested = 'operations.html'; }
-    else if (['/account.js', '/account.css', '/operations.js', '/operations.css', '/map.js', '/map.css',
+    else if (['/account.js', '/account.css', '/operations.js', '/operations.css', '/map.js', '/map.css', '/paths.js',
       '/vendor/leaflet.js', '/vendor/leaflet.css', '/vendor/images/marker-icon.png', '/vendor/images/marker-icon-2x.png',
       '/vendor/images/marker-shadow.png', '/vendor/images/layers.png', '/vendor/images/layers-2x.png'].includes(pathname)) {
       directory = publicDirectory; requested = pathname.slice(1);
@@ -243,11 +259,13 @@ export function createApp(config: AppConfig) {
       if (contained.startsWith('..') || isAbsolute(contained)) return false;
       const info = await stat(candidate);
       if (!info.isFile()) return false;
-      const content = request.method === 'HEAD' ? null : await readFile(candidate);
+      const html = extname(requested) === '.html';
+      let content: Buffer | null = request.method === 'HEAD' && !html ? null : await readFile(candidate);
+      if (content && html) content = mountedHtml(content);
       const interactive = demo || pathname === '/app' || pathname === '/app/';
       const csp = "default-src 'self'; script-src 'self'; style-src 'self'" + (interactive ? " 'unsafe-inline'" : '') + "; img-src 'self' data: " + tileUrl.origin + "; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
-      response.writeHead(200, { 'Content-Type': mimeTypes[extname(requested)]!, 'Content-Length': info.size, 'Cache-Control': 'no-store', 'Content-Security-Policy': csp });
-      response.end(content);
+      response.writeHead(200, { 'Content-Type': mimeTypes[extname(requested)]!, 'Content-Length': content?.byteLength ?? info.size, 'Cache-Control': 'no-store', 'Content-Security-Policy': csp });
+      response.end(request.method === 'HEAD' ? null : content);
       return true;
     } catch (error) {
       if (error && typeof error === 'object' && 'code' in error && ['ENOENT', 'ENOTDIR'].includes(String(error.code))) return false;
@@ -267,13 +285,23 @@ export function createApp(config: AppConfig) {
       let pathname: string;
       try { pathname = decodeURIComponent(url.pathname); } catch { throw new HttpError(400, 'Caminho inválido'); }
       const method = request.method ?? 'GET';
+      if (basePath) {
+        if (pathname === basePath && ['GET', 'HEAD'].includes(method)) {
+          response.writeHead(308, { Location: basePath + '/' + url.search, 'Cache-Control': 'no-store' });
+          response.end();
+          return;
+        }
+        if (!pathname.startsWith(basePath + '/')) throw new HttpError(404, 'Página não encontrada');
+        pathname = pathname.slice(basePath.length);
+        url.pathname = pathname;
+      }
       if (pathname === '/health' && method === 'GET') { json(response, 200, { status: 'ok' }); return; }
       if (pathname === '/api/map-config' && method === 'GET') {
         json(response, 200, { tileUrl: mapTileUrl, attribution: '© OpenStreetMap contributors' });
         return;
       }
       if (pathname === '/demo' && ['GET', 'HEAD'].includes(method)) {
-        response.writeHead(308, { Location: '/demo/', 'Cache-Control': 'no-store' });
+        response.writeHead(308, { Location: basePath + '/demo/' + url.search, 'Cache-Control': 'no-store' });
         response.end();
         return;
       }

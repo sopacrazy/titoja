@@ -19,10 +19,17 @@ let logoutUserId = null;
 let sessionChannel;
 try { sessionChannel = new BroadcastChannel('titoja-session'); } catch {}
 function sessionChanged() { sessionChannel?.postMessage({ type: 'changed' }); }
+function appPath(path) {
+  const prefix = document.querySelector('meta[name="titoja-base-path"]')?.content ?? '';
+  if (prefix.length > 160 || !/^(?:\/[A-Za-z0-9_-]+)*$/.test(prefix)) throw new Error('O endereço do aplicativo está configurado incorretamente.');
+  if (!path.startsWith('/') || path.startsWith('//') || /[\\\u0000-\u0020]/.test(path)
+    || path.split(/[?#]/, 1)[0].split('/').some(part => part === '.' || part === '..')) throw new Error('O caminho do aplicativo é inválido.');
+  return prefix + path;
+}
 
 async function api(path, options = {}) {
   let response;
-  try { response = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...options }); }
+  try { response = await fetch(appPath(path), { credentials: 'same-origin', cache: 'no-store', ...options }); }
   catch { throw new Error('Não foi possível conectar. Confira sua conexão e tente novamente.'); }
   let data;
   try { data = await response.json(); }
@@ -60,7 +67,7 @@ function guest(mode = 'login') {
         <p>Comida e cerveja perto de você. Um cadastro para cada jeito de participar.</p>
         <p><small>Cadastros, pedidos, aceite e etapas são compartilhados entre as contas participantes. Somente o pagamento é simulado, sem cobrança.</small></p>
       </div>
-      <div class="hero-art"><img src="/assets/beer-3d.png" alt="Cervejas geladas no TitoJá"></div>
+      <div class="hero-art"><img src="${appPath('/assets/beer-3d.png')}" alt="Cervejas geladas no TitoJá"></div>
     </section>
     <section class="card auth-card" aria-labelledby="auth-title">
       <nav class="auth-tabs" aria-label="Acesso à conta">
@@ -163,10 +170,10 @@ async function dashboard(profile, version) {
       <small>Perfil: ${labels[profile.role]} · sem acesso a outras contas</small></section>
       <section class="card"><h2>${profile.role === 'client' ? 'Meus pedidos' : profile.role === 'courier' || profile.role === 'driver' ? 'Meus serviços' : 'Pedidos do estabelecimento'}</h2>
       <p>Consulte suas solicitações, ofertas e etapas na área do aplicativo. Cada perfil acessa somente os serviços permitidos para sua conta.</p>
-      <a class="primary" href="/app/">Abrir aplicativo</a></section></div>
+      <a class="primary" href="${appPath('/app/')}">Abrir aplicativo</a></section></div>
     <div class="services"><div class="service"><span aria-hidden="true">🍔</span>Comida</div><div class="service"><span aria-hidden="true">🍺</span>Cerveja</div></div>
     <div class="note">Os pedidos são registrados e compartilhados entre as contas participantes. Somente o pagamento é simulado: não há cobrança. A demonstração separada não altera sua conta nem seus pedidos.</div>
-    <a class="secondary" href="/demo/">Explorar a demonstração com dados fictícios</a>`;
+    <a class="secondary" href="${appPath('/demo/')}">Explorar a demonstração com dados fictícios</a>`;
 }
 
 async function load() {

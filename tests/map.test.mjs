@@ -50,6 +50,23 @@ test('map coordinates accept only finite numeric latitude and longitude in geogr
   }
 });
 
+test('application resource paths use a validated mount prefix for API, Leaflet and marker assets', async () => {
+  const { appPath } = await import('../public/paths.js');
+  const document = content => ({ querySelector(selector) { assert.equal(selector, 'meta[name="titoja-base-path"]'); return content === null ? null : { content }; } });
+  for (const path of ['/api/account', '/api/orders?limit=10', '/vendor/leaflet.js', '/vendor/leaflet.css', '/vendor/images/marker-icon.png', '/vendor/images/marker-shadow.png', '/app/', '/']) {
+    assert.equal(appPath(path, document('')), path);
+    assert.equal(appPath(path, document(null)), path);
+    assert.equal(appPath(path, document('/titoja')), '/titoja' + path);
+    assert.equal(appPath(path, document('/apps/titoja-2')), '/apps/titoja-2' + path);
+  }
+  for (const prefix of ['/', '/titoja/', '//external.invalid', 'https://external.invalid', '/a/../b', '/a%2fb', '/a?x=1', '/a#b', '/a\\b', '/a"x', '/' + 'a'.repeat(160)]) {
+    assert.throws(() => appPath('/api/account', document(prefix)), /configurado incorretamente/);
+  }
+  for (const path of ['https://external.invalid/', '//external.invalid/', 'api/account', '/a/../api', '/a/./api', '/a\\api', '/a\napi']) {
+    assert.throws(() => appPath(path, document('/titoja')), /caminho do aplicativo é inválido/);
+  }
+});
+
 test('tile configuration requires HTTPS templates and rejects URL credentials or unknown placeholders', () => {
   assert.equal(map.validateTileUrl(map.DEFAULT_TILE_URL), 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
   assert.equal(map.validateTileUrl('https://maps.example.invalid/{z}/{x}/{y}.png'), 'https://maps.example.invalid/{z}/{x}/{y}.png');

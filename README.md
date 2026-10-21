@@ -37,6 +37,7 @@ NODE_ENV=development
 HOST=127.0.0.1
 PORT=4173
 APP_ORIGIN=http://127.0.0.1:4173
+BASE_PATH=
 DATABASE_PATH=./data/titoja.sqlite
 MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
 TRUST_LOOPBACK_PROXY=false
@@ -47,6 +48,8 @@ O banco é criado localmente, e as migrations pendentes são aplicadas ao inicia
 O diretório de dados precisa permitir escrita ao usuário que executa o servidor. Em sistemas POSIX, a criação usa diretório `0700`, arquivo novo `0600` e `umask 0077`; permissões de arquivos existentes não são alteradas silenciosamente. No Windows, conferir também as permissões da pasta do usuário. Use um caminho absoluto em uma futura instalação como serviço.
 
 `APP_ORIGIN` deve corresponder à origem externa exata, incluindo esquema e porta quando houver. Em produção, configure uma origem **HTTPS**: o cookie de sessão precisa de `Secure`. O servidor pode continuar em loopback atrás de um proxy HTTPS próprio.
+
+`BASE_PATH` fica vazio para executar na raiz. Para hospedar em uma subpasta, use `BASE_PATH=/titoja` e preserve esse prefixo no proxy: a conta fica em `/titoja/`, operações em `/titoja/app/`, e demonstração em `/titoja/demo/`. `APP_ORIGIN` continua sem caminho, como `https://titoja.example.invalid`. O backend recusa rotas fora da montagem; API, mapa e assets acompanham o prefixo. Não use rewrites que misturem os endpoints desta aplicação com os de outros projetos.
 
 `TRUST_LOOPBACK_PROXY` permanece `false` no uso direto. A ativação é somente para um proxy local conhecido que sobrescreva o cabeçalho de IP do visitante; veja o [plano de implantação](docs/deployment.md). Não afeta a identidade ou o papel dos usuários.
 
@@ -94,7 +97,7 @@ O banco começa vazio. Nenhum dado real de D1 ou de serviços externos foi expor
 
 Esta etapa não executa implantação na VPS. O plano futuro está em [implantação isolada](docs/deployment.md).
 
-O [relatório de validação](docs/validation.md) registra o build, os 120 testes executados, o QA desktop/mobile e os limites deste checkpoint. A versão validada localmente ainda exige preparação operacional antes de ser exposta em produção.
+O [relatório de validação](docs/validation.md) registra o build, os 126 testes executados após o suporte à subpasta, o QA desktop/mobile e os limites deste checkpoint. A validação do software não substitui a preparação e a conferência da instalação externa.
 
 ## Origem preservada
 

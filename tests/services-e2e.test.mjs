@@ -6,11 +6,11 @@ import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import { createApp } from '../dist/server/app.js';
 
-test('all seven services complete through real HTTP accounts, persisted state, store preparation, exclusive assignment and customer confirmation', async () => {
+for (const basePath of ['', '/titoja']) test(`all seven services complete through real HTTP accounts, persisted state, store preparation, exclusive assignment and customer confirmation (${basePath || 'root'})`, async () => {
   const directory = mkdtempSync(join(tmpdir(), 'titoja-services-'));
   const databasePath = join(directory, 'services.sqlite');
   const origin = 'http://127.0.0.1';
-  const config = { databasePath, origin, authRateLimit: { windowMs: 60000, maxAttempts: 1000 } };
+  const config = { databasePath, origin, basePath, authRateLimit: { windowMs: 60000, maxAttempts: 1000 } };
   let app = createApp(config);
   let base;
   async function listen() {
@@ -18,7 +18,7 @@ test('all seven services complete through real HTTP accounts, persisted state, s
     base = `http://127.0.0.1:${app.server.address().port}`;
   }
   async function request(path, cookie, method = 'GET', payload) {
-    const response = await fetch(base + path, { method, headers: {
+    const response = await fetch(base + basePath + path, { method, headers: {
       ...(cookie ? { Cookie: cookie } : {}),
       ...(method !== 'GET' ? { Origin: origin, 'Content-Type': 'application/json' } : {})
     }, ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}) });

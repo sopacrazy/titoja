@@ -20,8 +20,9 @@ async function until(predicate, description) {
   assert.fail('UI did not settle: ' + description);
 }
 
-function mount(handler, { channel = false } = {}) {
-  const dom = new JSDOM(html, { url: 'http://127.0.0.1:4173/', runScripts: 'outside-only' });
+function mount(handler, { channel = false, basePath = '' } = {}) {
+  const mountedHtml = html.replace('name="titoja-base-path" content=""', `name="titoja-base-path" content="${basePath}"`).replace('<base href="/">', `<base href="${basePath}/">`);
+  const dom = new JSDOM(mountedHtml, { url: `http://127.0.0.1:4173${basePath}/`, runScripts: 'outside-only' });
   const { window } = dom;
   const calls = [];
   let storageAccesses = 0;
@@ -51,6 +52,30 @@ function fill(ui, fields) {
   return form;
 }
 function submit(ui, form) { form.dispatchEvent(new ui.window.Event('submit', { bubbles: true, cancelable: true })); }
+
+test('a mounted account keeps login, assets and account/application/demo navigation under its configured base', async t => {
+  const saved = profile();
+  const ui = mount(request => {
+    if (request.path === '/titoja/api/account') return json({}, 401);
+    if (request.path === '/titoja/api/auth/login') return json({ profile: saved });
+    if (request.path === '/titoja/api/dashboard?role=client') return json({ profile: saved });
+    if (request.path === '/titoja/api/auth/logout') return json({ ok: true });
+    assert.fail('A mounted account escaped its base: ' + request.path);
+  }, { basePath: '/titoja' });
+  t.after(() => ui.dom.window.close());
+  await until(() => ui.document.getElementById('auth-form'), 'mounted login');
+  assert.equal(ui.document.querySelector('link[rel=stylesheet]').href, 'http://127.0.0.1:4173/titoja/account.css');
+  assert.equal(ui.document.querySelector('script[src]').src, 'http://127.0.0.1:4173/titoja/account.js');
+  assert.equal(ui.document.querySelector('.brand').href, 'http://127.0.0.1:4173/titoja/');
+  assert.equal(ui.document.querySelector('.hero-art img').src, 'http://127.0.0.1:4173/titoja/assets/beer-3d.png');
+  submit(ui, fill(ui, { email: 'pessoa@example.test', password }));
+  await until(() => ui.document.querySelector('.badge'), 'mounted dashboard');
+  assert.equal(ui.document.querySelector('a.primary').href, 'http://127.0.0.1:4173/titoja/app/');
+  assert.equal(ui.document.querySelector('a.secondary').href, 'http://127.0.0.1:4173/titoja/demo/');
+  ui.document.getElementById('signout').click();
+  await until(() => ui.document.getElementById('auth-form'), 'mounted logout');
+  assert.ok(ui.calls.every(call => call.path.startsWith('/titoja/api/')));
+});
 
 test('guest offers email/password login, honest limits and no platform or stored identity', async t => {
   const ui = mount(() => json({ error: 'Entre na sua conta' }, 401));

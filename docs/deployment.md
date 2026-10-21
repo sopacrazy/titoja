@@ -31,12 +31,17 @@ NODE_ENV=production
 HOST=127.0.0.1
 PORT=4173
 APP_ORIGIN=https://titoja.example.invalid
+BASE_PATH=/titoja
 DATABASE_PATH=/srv/titoja/data/titoja.sqlite
 MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
 TRUST_LOOPBACK_PROXY=false
 ```
 
 O domínio é um placeholder, e a porta só pode ser adotada depois de confirmar que está livre. A origem deve ser substituída pela origem HTTPS aprovada. Não desativar `Secure` para contornar problemas de proxy ou TLS.
+
+O exemplo monta a aplicação na subpasta `/titoja`. Para executar na raiz, configure `BASE_PATH=`. No nginx, um `location ^~ /titoja/` deve usar `proxy_pass http://127.0.0.1:PORTA;` **sem URI ou barra final**, preservando o prefixo para o backend. Redirecione somente `/titoja` para `/titoja/` e restrinja qualquer redirecionamento HTTP a essas rotas. Não capture `/api`, `/assets` ou `/` de outros projetos. O health check desse exemplo é `/titoja/health`.
+
+Ao usar um IP em vez de domínio, confira um certificado público válido para esse IP e a renovação automática. Navegadores podem não enviar SNI para um endereço IP: um novo `server_name` isolado não garante que o certificado será selecionado. Preserve a topologia TLS existente e teste o acesso sem SNI antes de publicar. Não substitua certificados nem altere o servidor padrão de outros projetos sem avaliar o impacto.
 
 O banco novo começa vazio, e as migrations são aplicadas na inicialização. Essa ação cria/atualiza somente o arquivo SQLite configurado; não é um procedimento de importação de D1 ou Firebase. Não apontar o processo para arquivos de outro projeto.
 

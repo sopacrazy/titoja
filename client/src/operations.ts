@@ -1,4 +1,5 @@
 import { mountMap, getCurrentPosition, type MapPoint } from './map.js';
+import { appPath } from './paths.js';
 
 type Role = 'client' | 'courier' | 'driver' | 'establishment';
 type Service = 'moto' | 'car' | 'delivery' | 'food' | 'market' | 'pharmacy' | 'beer';
@@ -63,7 +64,7 @@ async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if ((isPrivatePath(path) || path === '/api/auth/logout') && expectedUser && options.method && !['GET', 'HEAD'].includes(options.method)) headers.set('X-Titoja-User', expectedUser);
   let response: Response;
-  try { response = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...options, headers }); }
+  try { response = await fetch(appPath(path, document), { credentials: 'same-origin', cache: 'no-store', ...options, headers }); }
   catch (error) { if ((error as Error).name === 'AbortError') throw error; throw new Error('Conexão indisponível. Atualize o histórico antes de reenviar uma solicitação.'); }
   let value: any;
   try { value = await response.json(); } catch { throw new Error('Não foi possível ler a resposta. Tente atualizar.'); }
@@ -112,7 +113,7 @@ function clearPrivateState() {
 }
 function signedOut() {
   clearPrivateState();
-  main.innerHTML = '<section class="card"><h1>Entre na sua conta</h1><p>Sua sessão não está disponível. Seus pedidos continuam no banco.</p><a class="primary" href="/">Entrar no TitoJá</a></section>';
+  main.innerHTML = `<section class="card"><h1>Entre na sua conta</h1><p>Sua sessão não está disponível. Seus pedidos continuam no banco.</p><a class="primary" href="${appPath('/', document)}">Entrar no TitoJá</a></section>`;
 }
 function checkedProfile(value: Profile): Profile {
   if (!value || typeof value.user_id !== 'string' || !value.user_id || typeof value.name !== 'string' || !Object.hasOwn(roles, value.role)) throw new Error('Perfil não disponível.');
@@ -191,7 +192,7 @@ async function navigate(next: View) {
   finally { if (version === revision) loadingView = false; }
 }
 function art(id: Service) {
-  if (id === 'beer') return '<img class="ops-art-image" src="/assets/beer-3d.png" alt="">';
+  if (id === 'beer') return `<img class="ops-art-image" src="${appPath('/assets/beer-3d.png', document)}" alt="">`;
   if (id === 'market') return '<div class="ops-art art-market" aria-hidden="true">🛒</div>';
   return `<div class="ops-art art-${id}" aria-hidden="true"></div>`;
 }
@@ -207,7 +208,7 @@ function renderWorkspace() {
     ${profile!.role === 'establishment' ? '<a class="primary" href="#manage" data-nav="manage">Gerenciar loja e produtos</a>' : ''}
     ${['courier', 'driver'].includes(profile!.role) ? '<div class="ops-section-title"><h2>Ofertas disponíveis</h2></div><div id="queue-feed" class="ops-stack"></div><p><small>Antes do aceite, você vê somente as áreas aproximadas. Os endereços são liberados ao profissional atribuído.</small></p>' : ''}
     <div class="ops-section-title"><h2>${client ? 'Seus pedidos' : 'Seus serviços e pedidos'}</h2><button class="secondary" type="button" data-nav="orders">Ver histórico</button></div><div id="orders-feed" class="ops-stack"></div>
-    </section><aside class="ops-aside"><img src="/assets/delivery-scooter.png" alt="Scooter laranja, ilustração do TitoJá"><span class="eyebrow">Um passo de cada vez</span><h2>Seu pedido,<br>cada etapa.</h2><p>Os participantes atualizam o pedido. As informações são consultadas a cada 5 segundos e também pelo botão Atualizar.</p><p>Pagamento simulado, sem cobrança. Não há e-mail, SMS ou notificação externa.</p></aside></div>`;
+    </section><aside class="ops-aside"><img src="${appPath('/assets/delivery-scooter.png', document)}" alt="Scooter laranja, ilustração do TitoJá"><span class="eyebrow">Um passo de cada vez</span><h2>Seu pedido,<br>cada etapa.</h2><p>Os participantes atualizam o pedido. As informações são consultadas a cada 5 segundos e também pelo botão Atualizar.</p><p>Pagamento simulado, sem cobrança. Não há e-mail, SMS ou notificação externa.</p></aside></div>`;
 }
 function card(order: Order, offer = false) {
   return `<article class="ops-order"><h3>${esc(serviceName(order.service))} · ${esc(order.id)}</h3><span class="ops-status ${terminal(order) ? 'terminal' : ''}">${esc(statuses[order.status] ?? order.status)}</span>

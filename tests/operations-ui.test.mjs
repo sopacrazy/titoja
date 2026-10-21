@@ -5,8 +5,9 @@ import { randomUUID } from 'node:crypto';
 import { JSDOM } from 'jsdom';
 
 const html = readFileSync(new URL('../public/operations.html', import.meta.url), 'utf8');
-const script = readFileSync(new URL('../public/operations.js', import.meta.url), 'utf8').replace(/^import .*?;\s*/m, '');
-const mapScript = readFileSync(new URL('../public/map.js', import.meta.url), 'utf8').replace(/^export /gm, '');
+const script = readFileSync(new URL('../public/operations.js', import.meta.url), 'utf8').replace(/^import .*?;\s*/gm, '');
+const mapScript = readFileSync(new URL('../public/map.js', import.meta.url), 'utf8').replace(/^import .*?;\s*/gm, '').replace(/^export /gm, '');
+const pathsScript = readFileSync(new URL('../public/paths.js', import.meta.url), 'utf8').replace(/^export /gm, '');
 const user = (role = 'client', id = 'client-a', name = 'Ana Cliente') => ({ user_id: id, role, name });
 const order = (id = 'order-a', overrides = {}) => ({
   id, service: 'delivery', deliveryType: 'Documento', status: 'requested', version: 1,
@@ -32,7 +33,9 @@ async function until(predicate, description) {
 const settle = () => new Promise(resolve => setTimeout(resolve, 10));
 
 function mount(handler, options = {}) {
-  const dom = new JSDOM(html, { url: 'http://127.0.0.1:4173/app/', runScripts: 'outside-only', pretendToBeVisual: true });
+  const prefix = options.basePath ?? '';
+  const mountedHtml = html.replace('name="titoja-base-path" content=""', `name="titoja-base-path" content="${prefix}"`).replace('<base href="/">', `<base href="${prefix}/">`);
+  const dom = new JSDOM(mountedHtml, { url: `http://127.0.0.1:4173${prefix}/app/`, runScripts: 'outside-only', pretendToBeVisual: true });
   const { window } = dom;
   const calls = [], intervals = new Map(), channels = [], mapCalls = [];
   let nextTimer = 0, hidden = false, storageAccesses = 0;
@@ -65,7 +68,7 @@ function mount(handler, options = {}) {
     return options.mountMap ? options.mountMap(container, config, instance) : instance;
   };
   // Exercise the emitted production UI and actual GPS validation, while keeping map tiles offline.
-  window.eval(`const { getCurrentPosition } = (() => { ${mapScript}\nreturn { getCurrentPosition }; })(); const mountMap = window.__mountMap;\n${script}`);
+  window.eval(`${pathsScript}\nconst { getCurrentPosition } = (() => { ${mapScript}\nreturn { getCurrentPosition }; })(); const mountMap = window.__mountMap;\n${script}`);
   return {
     dom, window, document: window.document, calls, intervals, channels, mapCalls,
     storageAccesses: () => storageAccesses,
@@ -113,6 +116,35 @@ test('operations starts with seven real services, a single poll and no implicit 
   assert.equal(ui.storageAccesses(), 0);
   for (const call of ui.calls) { assert.equal(call.options.credentials, 'same-origin'); assert.equal(call.options.cache, 'no-store'); }
   assert.match(ui.document.body.textContent, /pagamento simulado, sem cobrança/i);
+});
+
+test('a mounted operations UI keeps polling, catalog, map config, checkout, assets and logout within its base', async t => {
+  const ui = mount(request => {
+    assert.ok(request.path.startsWith('/titoja/api/'), 'Mounted API request escaped the application: ' + request.path);
+    const local = { ...request, path: request.path.slice('/titoja'.length) };
+    if (local.path === '/api/map-config') return json({ tileUrl: 'https://tiles.invalid/{z}/{x}/{y}.png' }, 200, null);
+    if (local.path === '/api/orders' && local.options.method === 'POST') return json({ order: order('mounted-order') }, 201);
+    if (local.path === '/api/orders/mounted-order') return json({ order: order('mounted-order') });
+    if (local.path === '/api/auth/logout') return json({ ok: true });
+    return commerceApi(local);
+  }, { basePath: '/titoja' });
+  t.after(() => ui.dom.window.close());
+  await ready(ui);
+  assert.equal(ui.document.querySelector('script[src]').src, 'http://127.0.0.1:4173/titoja/operations.js');
+  assert.equal(ui.document.querySelector('.brand').href, 'http://127.0.0.1:4173/titoja/app/');
+  assert.equal(ui.document.querySelector('.ops-aside img').src, 'http://127.0.0.1:4173/titoja/assets/delivery-scooter.png');
+  assert.equal(ui.document.querySelector('[data-service=beer] img').src, 'http://127.0.0.1:4173/titoja/assets/beer-3d.png');
+  const before = ui.calls.length;
+  ui.tick(); await until(() => ui.calls.length > before + 1, 'mounted polling');
+  await checkout(ui);
+  ui.document.querySelector('[data-open-map]').click(); await until(() => ui.mapCalls.length, 'mounted optional map');
+  ui.document.querySelector('[data-quantity=product-a]').value = '1';
+  submit(ui, fill(ui, '#commerce-form', { dropoffAddress: 'Rua Destino, 20', dropoffArea: 'Jardim', paymentSimulation: true }));
+  await until(() => ui.document.getElementById('order-live')?.textContent.includes('mounted-order'), 'mounted created order');
+  ui.document.getElementById('ops-signout').click();
+  await until(() => ui.document.body.textContent.includes('Entre na sua conta'), 'mounted logout');
+  assert.equal(ui.document.querySelector('#operations a.primary').href, 'http://127.0.0.1:4173/titoja/');
+  assert.ok(ui.calls.some(call => call.path === '/titoja/api/auth/logout'));
 });
 
 test('checkout computes the catalog subtotal, sends selected items and explicit GPS once, then follows the server order', async t => {

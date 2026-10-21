@@ -1,4 +1,5 @@
 import type {CircleMarker, LeafletMouseEvent, Map as LeafletMap, Marker} from 'leaflet';
+import {appPath} from './paths.js';
 
 export interface MapPoint {lat: number; lng: number}
 export interface LocationResult {point: MapPoint; accuracy: number; timestamp: number}
@@ -60,7 +61,7 @@ function loadLeafletStyles(doc: Document): Promise<void> {
     if (existing?.sheet) { resolve(); return; }
     const link = existing ?? doc.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/vendor/leaflet.css';
+    link.href = appPath('/vendor/leaflet.css', doc);
     link.dataset.titojaLeaflet = 'true';
     const timer = setTimeout(() => finish(new Error('Os controles do mapa não puderam ser carregados.')), 15000);
     const loaded = () => finish();
@@ -81,7 +82,7 @@ function loadLeafletStyles(doc: Document): Promise<void> {
 async function loadLeaflet(doc: Document): Promise<typeof import('leaflet')> {
   if (!leafletPromise) {
     // A variable URL keeps the emitted browser module free of unresolved bare npm imports.
-    const moduleUrl = new URL('/vendor/leaflet.js', doc.baseURI).href;
+    const moduleUrl = new URL(appPath('/vendor/leaflet.js', doc), doc.baseURI).href;
     leafletPromise = import(moduleUrl).then(module => module as typeof import('leaflet'))
       .catch(error => { leafletPromise = undefined; throw error; });
   }
@@ -164,8 +165,8 @@ export async function mountMap(container: HTMLElement, options: MapOptions = {})
     let trackedMarker: CircleMarker | undefined;
     let destroyed = false;
     const pinIcon = L.icon({
-      iconUrl: '/vendor/images/marker-icon.png', iconRetinaUrl: '/vendor/images/marker-icon-2x.png',
-      shadowUrl: '/vendor/images/marker-shadow.png', iconSize: [25, 41], iconAnchor: [12, 41],
+      iconUrl: appPath('/vendor/images/marker-icon.png', doc), iconRetinaUrl: appPath('/vendor/images/marker-icon-2x.png', doc),
+      shadowUrl: appPath('/vendor/images/marker-shadow.png', doc), iconSize: [25, 41], iconAnchor: [12, 41],
       shadowSize: [41, 41], tooltipAnchor: [16, -28],
     });
     const setPoint = (value: MapPoint | null) => {

@@ -56,3 +56,9 @@ Esta validação comprova o fluxo de software local entre sessões próprias. N�
 - Pagamento, repasse e saque continuam simulados, sem cobrança. Frete e corridas têm valor a combinar.
 - Farmácia e bebidas representam catálogo/logística; não há validação de receita/idade ou compra externa automática de produtos regulados.
 - Domínio, HTTPS, usuário de serviço, diretórios, porta livre, proxy e política de backup da VPS dependem da etapa de implantação aprovada. Ver [plano isolado](deployment.md).
+
+## Atualização para hospedagem em subpasta — 21/10/2026
+
+Após a autorização de implantação, foi acrescentado `BASE_PATH`, mantendo o modo raiz. `npm test` reconstruiu a versão e passou **126 testes, zero falhas e zero ignorados**. As seis regressões adicionais cobrem montagem HTTP, validação do prefixo, rotas fora da montagem, HEAD e assets, caminhos da interface e os sete serviços sob `/titoja`, também com reinícios durante cada serviço. As proteções de sessão, autorização, origem e cookie Secure foram preservadas.
+
+Na subpasta, a origem externa continua sem caminho, enquanto o proxy conserva o prefixo da URL. Conta, operações, demonstração, APIs e Leaflet recebem a mesma montagem. O bootstrap de HTML usa somente valores de configuração validados; não há substituição genérica do conteúdo pelo nginx.
