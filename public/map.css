@@ -1,0 +1,21 @@
+.titoja-map{display:grid;gap:.75rem;min-width:0;padding:.9rem;border:1px solid #ddd6ce;border-radius:16px;background:#fff;color:#28231f}
+.titoja-map-stage{height:360px;min-height:300px;max-height:65vh;width:100%;border:1px solid #ccc5bb;border-radius:10px;background:#e9e7e1;z-index:0}
+.titoja-map-stage:focus-visible{outline:3px solid #1564b4;outline-offset:3px}
+.titoja-map-hint,.titoja-map-point,.titoja-map-privacy,.titoja-map-status{margin:0;font-size:.875rem;line-height:1.5}
+.titoja-map-hint{color:#4e4740}
+.titoja-map-point{font-variant-numeric:tabular-nums;font-weight:600;overflow-wrap:anywhere}
+.titoja-map-privacy{color:#5f574e;font-size:.8rem}
+.titoja-map-toolbar{display:flex;gap:.75rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.titoja-map-toolbar a{color:#175787;text-decoration:underline;font-size:.8rem;text-underline-offset:3px}
+.titoja-map-button{border:1px solid #9b5932;border-radius:8px;padding:.65rem .85rem;background:#fff3e9;color:#6f3517;font:inherit;font-size:.875rem;font-weight:600;cursor:pointer;min-height:44px}
+.titoja-map-button:hover{background:#ffe4cf}
+.titoja-map-button:focus-visible,.titoja-map-toolbar a:focus-visible{outline:3px solid #1564b4;outline-offset:3px}
+.titoja-map-status{padding:.7rem .85rem;border-radius:8px;background:#f2f2f2}
+.titoja-map-status.is-error{background:#fff0ed;border:1px solid #c94732;color:#852b1d}
+.titoja-map-status[hidden]{display:none}
+.titoja-map .leaflet-control-attribution{max-width:100%;padding:3px 6px;font-size:11px;line-height:1.4;background:#fffffff2;color:#333;white-space:normal}
+.titoja-map .leaflet-control-attribution a{color:#165686;text-decoration:underline}
+.titoja-map .leaflet-control-zoom a{color:#29241f}
+.titoja-map .leaflet-control-zoom a:focus-visible,.titoja-map .leaflet-marker-icon:focus-visible{outline:3px solid #1564b4;outline-offset:2px}
+@media(max-width:540px){.titoja-map{padding:.7rem}.titoja-map-stage{height:330px;min-height:280px}.titoja-map-toolbar{align-items:stretch}.titoja-map-button{width:100%}}
+@media(prefers-reduced-motion:reduce){.titoja-map *{scroll-behavior:auto!important}}

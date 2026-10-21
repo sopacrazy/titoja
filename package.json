@@ -1,0 +1,24 @@
+{
+  "name": "titoja",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.22.0" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && node scripts/test.mjs",
+    "start": "node --env-file-if-exists=.env dist/server/index.js",
+    "dev": "npm run build && npm start",
+    "db:backup": "node --env-file-if-exists=.env scripts/backup.mjs",
+    "check:public": "node scripts/check-public.mjs"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4"
+  },
+  "devDependencies": {
+    "@types/leaflet": "1.9.22",
+    "@types/node": "22.20.5",
+    "jsdom": "29.1.1",
+    "typescript": "5.9.3"
+  }
+}
